@@ -1,69 +1,36 @@
-# React + TypeScript + Vite
+# 🧠 Collab Graph
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A collaborative graph editor built with React and PixiJS (work in progress)
 
-Currently, two official plugins are available:
+## 🎯 Goal
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+The aim of this project is to build a collaborative web-based graph editor where multiple users (e.g. teachers and students) can create, move, and interact with nodes in real time. It’s primarily designed for educational concept maps and visual learning structures.
 
-## Expanding the ESLint configuration
+## ⚙️ Tech Stack
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **React** – UI rendering
+- **PixiJS v8** – fast, hardware-accelerated 2D canvas rendering
+- **Vite** – modern build tool for fast development
+- **TypeScript** – static typing for maintainable code
+- **TailwindCSS** – utility-first styling (to be added soon)
+- **D3 (planned)** – for force-directed layouts
 
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## ✅ Current Progress
 
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
+- [x] Vite + React + TypeScript setup
+- [x] Integrated PixiJS v8 in React with proper cleanup and resizing
+- [x] Created interactive draggable boxes (graph nodes)
+- [ ] Coming up: edges, forces, and centralized state management
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## 📌 Next Steps
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+- [ ] Connect nodes with lines (edges)
+- [ ] Add D3-style force simulation layout
+- [ ] Introduce a global store (Zustand or Redux)
+- [ ] User authentication and role-based permissions
+- [ ] Export/import graphs
+- [ ] Collaboration features (WebSocket / CRDT)
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## 🙋‍♂️ Author
 
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+Built by Andrei as a learning exercise in React canvas rendering, PixiJS, and UI for educational tools.
