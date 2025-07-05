@@ -1,36 +1,73 @@
 # 🧠 Collab Graph
 
-A collaborative graph editor built with React and PixiJS (work in progress)
+An interactive graph visualization demo built with React and PixiJS.
 
-## 🎯 Goal
+## 🎯 What it does
 
-The aim of this project is to build a collaborative web-based graph editor where multiple users (e.g. teachers and students) can create, move, and interact with nodes in real time. It’s primarily designed for educational concept maps and visual learning structures.
+Interactive graph visualization demo where you can drag nodes around and explore the scene. Originally planned for educational concept mapping, but right now it's a solid foundation for graph interactions.
+
+## 🎮 Live Demo
+Check out the current demo [here](https://collab-graph-beige.vercel.app/). It's a working visualization with smooth drag-and-drop, panning, and zoom interactions. The graph data is hardcoded for now, but all the core mechanics are there and running smoothly.
 
 ## ⚙️ Tech Stack
 
-- **React** – UI rendering
-- **PixiJS v8** – fast, hardware-accelerated 2D canvas rendering
-- **Vite** – modern build tool for fast development
-- **TypeScript** – static typing for maintainable code
-- **TailwindCSS** – utility-first styling (to be added soon)
-- **D3 (planned)** – for force-directed layouts
+- **React + TypeScript** – because types save lives
+- **PixiJS v8** – hardware-accelerated 2D rendering that actually performs
+- **Zustand** – lightweight state management
+- **GSAP** – smooth animations
+- **Vite** – fast development setup
 
-## ✅ Current Progress
+## ✨ Current Features
 
-- [x] Vite + React + TypeScript setup
-- [x] Integrated PixiJS v8 in React with proper cleanup and resizing
-- [x] Created interactive draggable boxes (graph nodes)
-- [ ] Coming up: edges, forces, and centralized state management
+**Dynamic Graph Rendering**
+- Nodes and directed edges rendered on a managed canvas
+- Smart edge connections that attach to node boundaries (not centers)
+- Dynamic node sizing based on label length
 
-## 📌 Next Steps
+**Advanced Interactions**
+- Drag & drop individual nodes
+- Pan the entire scene (left-click on background or middle-click)
+- Cursor-based zoom (Google Maps style)
+- Smooth, frame-synced movement
 
-- [ ] Connect nodes with lines (edges)
-- [ ] Add D3-style force simulation layout
-- [ ] Introduce a global store (Zustand or Redux)
-- [ ] User authentication and role-based permissions
-- [ ] Export/import graphs
-- [ ] Collaboration features (WebSocket / CRDT)
+**Visual Polish**
+- Clean, modern color palette with subtle shadows
+- High-contrast text that stays crisp at any zoom level
+- Real-time FPS monitoring for performance tracking
 
-## 🙋‍♂️ Author
+**Performance Optimizations**
+- Decoupled event handling from render loop
+- Centralized pointer event management
+- Smooth animations even during rapid gestures
 
-Built by Andrei as a learning exercise in React canvas rendering, PixiJS, and UI for educational tools.
+## 🛠️ Technical Highlights
+
+Some interesting problems I solved along the way:
+
+- **Event Architecture**: Centralized all pointer events at the scene level to prevent conflicts between node dragging and scene panning
+- **Smooth Movement**: Decoupled position updates from pointer events, using the render ticker instead for frame-synchronized movement
+- **Precise Edge Rendering**: Implemented mathematical intersection calculations so edges connect cleanly to node boundaries
+- **High-Quality Text**: Dynamic text resolution adjustment maintains crisp text at any zoom level
+
+## 🎮 Try it
+
+```bash
+npm install
+npm run dev
+```
+
+Drag nodes around, pan and zoom the scene. It's a demo, but the interactions feel smooth and the performance is solid.
+
+## 🚀 What's Next
+
+- **d3-force integration** for automatic node layouts
+- **Node interactions** (double-click to edit labels)
+- **Create/delete nodes and edges** directly in the interface
+- **Performance optimizations** for larger graphs (viewport culling)
+- **Collaborative features**
+
+## 📝 Notes
+
+This started as a thesis project that I wanted to modernize and make actually performant. Turned into a deep dive into canvas optimization, event handling, and building interactions that feel natural.
+
+Built with curiosity and a lot of Stack Overflow tabs open.
