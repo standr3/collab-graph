@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useCallback, useState } from "react";
 import * as PIXI from "pixi.js";
 import { useGraphStore, type Node as GraphNode, type Link as GraphLink } from "./store";
-import { initializeSimulation, stopSimulation, startDragNode, dragNode, endDragNode } from "./logic";
+import { initializeSimulation, startDragNode, dragNode, endDragNode } from "./logic";
 import { gsap } from "gsap";
 
 const Toolbar: React.FC<{ onZoomIn: () => void; onZoomOut: () => void; onCenterView: () => void; onFitView: () => void; }> = ({ onZoomIn, onZoomOut, onCenterView, onFitView }) => {
