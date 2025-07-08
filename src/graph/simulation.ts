@@ -17,7 +17,13 @@ export function initializeSimulation(nodes: Node[], links: Link[], onTick: () =>
     .force("link", forceLink<Node, Link>(links).id(d => d.id).distance(150).strength(0.1))
     .force("charge", forceManyBody().strength(-400))
     .force("center", forceCenter(window.innerWidth / 2, window.innerHeight / 2))
-    .on("tick", onTick); 
+    .on("tick", onTick);
+}
+
+export function updateSimulationNodes(nodes: Node[]) {
+    if (!simulation) return;
+    simulation.nodes(nodes);
+    simulation.alpha(0.3).restart();
 }
 
 

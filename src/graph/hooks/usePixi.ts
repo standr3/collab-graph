@@ -2,7 +2,7 @@ import { useRef, useEffect, useCallback } from 'react';
 import * as PIXI from 'pixi.js';
 import { gsap } from 'gsap';
 import { useGraphStore, type Node as GraphNode, type Link as GraphLink } from '../store';
-import { initializeSimulation, startDragNode, dragNode, endDragNode } from '../simulation';
+import { initializeSimulation, startDragNode, dragNode, endDragNode, updateSimulationNodes } from '../simulation';
 import { drawNode, drawLink } from '../drawing';
 
 export const usePixi = (containerRef: React.RefObject<HTMLDivElement | null>) => {
@@ -10,10 +10,21 @@ export const usePixi = (containerRef: React.RefObject<HTMLDivElement | null>) =>
     const worldRef = useRef<PIXI.Container | null>(null);
     const pixiNodes = useRef(new Map<string, PIXI.Container>());
     const pixiLinks = useRef(new Map<string, PIXI.Graphics>());
-    const { nodes, links, initializeGraph } = useGraphStore();
+    const { nodes, links } = useGraphStore();
     const isPanning = useRef(false);
     const lastPanPoint = useRef(new PIXI.Point());
     const activeDragTargetId = useRef<string | null>(null);
+
+    const onNodeDragStart = useCallback((event: PIXI.FederatedPointerEvent) => {
+        event.stopPropagation();
+        const targetId = (event.currentTarget as PIXI.Container).name;
+        if (targetId) {
+            activeDragTargetId.current = targetId;
+            const pixiNode = pixiNodes.current.get(targetId);
+            if (pixiNode) pixiNode.alpha = 0.7;
+            startDragNode(targetId);
+        }
+    }, []);
 
     const updateTextQuality = useCallback(() => {
         if (!worldRef.current) return;
@@ -92,7 +103,7 @@ export const usePixi = (containerRef: React.RefObject<HTMLDivElement | null>) =>
         updateTextQuality();
     }, [updateTextQuality]);
 
-
+    // Effect for initializing the PIXI application
     useEffect(() => {
         if (!containerRef.current || appRef.current || nodes.length === 0) return;
 
@@ -166,16 +177,6 @@ export const usePixi = (containerRef: React.RefObject<HTMLDivElement | null>) =>
                 }
                 isPanning.current = false;
             }
-            function onNodeDragStart(event: PIXI.FederatedPointerEvent) {
-                event.stopPropagation();
-                const targetId = (event.currentTarget as PIXI.Container).name;
-                if (targetId) {
-                    activeDragTargetId.current = targetId;
-                    const pixiNode = pixiNodes.current.get(targetId);
-                    if (pixiNode) pixiNode.alpha = 0.7;
-                    startDragNode(targetId);
-                }
-            }
             function onWorldPanStart(event: PIXI.FederatedPointerEvent) {
                 if (event.target === world || event.button === 1) {
                     isPanning.current = true;
@@ -205,7 +206,39 @@ export const usePixi = (containerRef: React.RefObject<HTMLDivElement | null>) =>
             appRef.current?.destroy(true);
             appRef.current = null;
         };
-    }, [nodes, links, initializeGraph, containerRef, handleZoom]);
+    }, [nodes.length === 7, links.length, containerRef, handleZoom, onNodeDragStart]);
+
+    // Effect for adding new nodes
+    useEffect(() => {
+        const world = worldRef.current;
+        if (!world) return;
+
+        const nodesContainer = world.getChildAt(1) as PIXI.Container;
+        if (!nodesContainer) return;
+
+        const currentPixiNodeIds = Array.from(pixiNodes.current.keys());
+        const newNodes = nodes.filter(n => !currentPixiNodeIds.includes(n.id));
+
+        newNodes.forEach(nodeData => {
+            const nodeContainer = drawNode(nodeData);
+            nodeContainer.on("pointerdown", onNodeDragStart);
+            
+            const worldPoint = new PIXI.Point(window.innerWidth / 2, window.innerHeight / 2);
+            const localPoint = world.toLocal(worldPoint);
+            nodeData.x = localPoint.x;
+            nodeData.y = localPoint.y;
+            nodeContainer.x = localPoint.x;
+            nodeContainer.y = localPoint.y;
+            
+            nodesContainer.addChild(nodeContainer);
+            pixiNodes.current.set(nodeData.id, nodeContainer);
+        });
+
+        if (newNodes.length > 0) {
+            updateSimulationNodes(nodes);
+        }
+
+    }, [nodes, onNodeDragStart]);
 
     return { appRef, zoom, centerView, fitView };
 };

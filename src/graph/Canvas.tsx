@@ -8,7 +8,7 @@ const Canvas: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const { appRef, zoom, centerView, fitView } = usePixi(containerRef);
   const [fps, setFps] = useState(0);
-  const { initializeGraph } = useGraphStore();
+  const { initializeGraph, addNode } = useGraphStore();
 
   useEffect(() => {
     const initialNodes = [
@@ -26,6 +26,14 @@ const Canvas: React.FC = () => {
     ];
     initializeGraph(initialNodes, initialLinks);
   }, [initializeGraph]);
+
+  const handleAddNode = () => {
+    const newNode = {
+      id: `node-${Date.now()}`,
+      label: "Nod Nou",
+    };
+    addNode(newNode);
+  };
 
   useEffect(() => {
     const app = appRef.current;
@@ -45,6 +53,7 @@ const Canvas: React.FC = () => {
         onZoomOut={() => zoom(0.8)}
         onCenterView={centerView}
         onFitView={fitView}
+        onAddNode={handleAddNode}
       />
       <StatsPanel fps={fps} />
       <div ref={containerRef} style={{ width: "100%", height: "100%" }} />

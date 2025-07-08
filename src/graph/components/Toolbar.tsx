@@ -5,7 +5,8 @@ const Toolbar: React.FC<{
   onZoomOut: () => void;
   onCenterView: () => void;
   onFitView: () => void;
-}> = ({ onZoomIn, onZoomOut, onCenterView, onFitView }) => {
+  onAddNode: () => void;
+}> = ({ onZoomIn, onZoomOut, onCenterView, onFitView, onAddNode }) => {
   return (
     <div className="absolute top-4 right-4 bg-gray-800 bg-opacity-80 p-2 rounded-lg shadow-lg flex flex-col space-y-2 z-10">
       <button onClick={onZoomIn} title="Zoom In" className="p-2 bg-gray-700 hover:bg-blue-500 rounded transition-colors text-white">
@@ -19,6 +20,9 @@ const Toolbar: React.FC<{
       </button>
       <button onClick={onFitView} title="Încadrează Vederea" className="p-2 bg-gray-700 hover:bg-blue-500 rounded transition-colors text-white">
         🖼️
+      </button>
+      <button onClick={onAddNode} title="Adaugă Nod" className="p-2 bg-gray-700 hover:bg-green-500 rounded transition-colors text-white">
+        ➕ Nod
       </button>
     </div>
   );

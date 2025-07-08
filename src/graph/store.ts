@@ -25,6 +25,7 @@ interface GraphState {
   nodes: Node[];
   links: Link[];
   initializeGraph: (nodes: NodeData[], links: LinkData[]) => void;
+  addNode: (newNode: NodeData) => void;
   updateNodePositions: (updatedNodes: { id: string; x: number; y: number }[]) => void;
 }
 
@@ -44,6 +45,19 @@ export const useGraphStore = create<GraphState>((set) => ({
     }));
 
     set({ nodes, links });
+  },
+
+  addNode: (newNodeData) => {
+    set(state => {
+      const newNode: Node = {
+        ...newNodeData,
+        width: 150,
+        height: 50,
+        x: window.innerWidth / 2,
+        y: window.innerHeight / 2,
+      };
+      return { nodes: [...state.nodes, newNode] };
+    });
   },
 
   updateNodePositions: (updatedNodes) => {
