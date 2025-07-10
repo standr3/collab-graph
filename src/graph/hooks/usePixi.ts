@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, useMemo } from 'react';
 import * as PIXI from 'pixi.js';
 import { gsap } from 'gsap';
 import { useGraphStore, type Node as GraphNode, type Link as GraphLink } from '../store';
@@ -29,6 +29,44 @@ export const usePixi = (
   const pixiNodes = useRef<Map<string, PIXI.Container>>(new Map());
   const pixiLinks = useRef<Map<string, PIXI.Graphics>>(new Map());
   const { nodes, links, openContextMenu, renamingNodeId } = useGraphStore();
+
+  const linkCurvatures = useMemo(() => {
+    const curvatures = new Map<string, number>();
+    const linkGroups = new Map<string, GraphLink[]>();
+    links.forEach(link => {
+        const source = link.source as GraphNode | string;
+        const target = link.target as GraphNode | string;
+        const sourceId = typeof source === 'object' ? source.id : source;
+        const targetId = typeof target === 'object' ? target.id : target;
+        const key = sourceId < targetId ? `${sourceId}-${targetId}` : `${targetId}-${sourceId}`;
+        if (!linkGroups.has(key)) {
+            linkGroups.set(key, []);
+        }
+        linkGroups.get(key)!.push(link);
+    });
+
+    linkGroups.forEach((group) => {
+        if (group.length === 0) return;
+        
+        const total = group.length;
+        if (total === 1) {
+            curvatures.set(group[0].id, 0.15);
+            return;
+        }
+
+        group.sort((a, b) => a.id.localeCompare(b.id));
+
+        const step = 0.25;
+        const center = (total - 1) / 2;
+
+        group.forEach((link, i) => {
+            const curvature = (i - center) * step;
+            curvatures.set(link.id, curvature);
+        });
+    });
+    return curvatures;
+  }, [links]);
+
   const isPanning = useRef<boolean>(false);
   const lastPanPoint = useRef<PIXI.Point>(new PIXI.Point());
   const activeDragTargetId = useRef<string | null>(null);
@@ -212,12 +250,27 @@ export const usePixi = (
             }
   
         });
-        links.forEach((link) => {
-          const linkGfx = pixiLinks.current.get(link.id);
-          if (linkGfx && typeof link.source !== 'string' && typeof link.target !== 'string') {
-            drawLink(linkGfx, link.source as GraphNode, link.target as GraphNode);
-          }
-        });
+        if (nodes.length > 0) {
+            const centerX = nodes.reduce((acc, n) => acc + (n.x ?? 0), 0) / nodes.length;
+            const centerY = nodes.reduce((acc, n) => acc + (n.y ?? 0), 0) / nodes.length;
+            const graphCenter = new PIXI.Point(centerX, centerY);
+
+            links.forEach((link) => {
+              const linkGfx = pixiLinks.current.get(link.id);
+              if (linkGfx && typeof link.source !== 'string' && typeof link.target !== 'string') {
+                const curvature = linkCurvatures.get(link.id) ?? 0;
+                drawLink(linkGfx, link.source as GraphNode, link.target as GraphNode, curvature, graphCenter);
+              }
+            });
+        } else {
+            links.forEach((link) => {
+              const linkGfx = pixiLinks.current.get(link.id);
+              if (linkGfx && typeof link.source !== 'string' && typeof link.target !== 'string') {
+                const curvature = linkCurvatures.get(link.id) ?? 0;
+                drawLink(linkGfx, link.source as GraphNode, link.target as GraphNode, curvature);
+              }
+            });
+        }
       };
 
       initializeSimulation(nodes, links as GraphLink[], onTick);
@@ -288,7 +341,7 @@ export const usePixi = (
       appRef.current?.destroy(true);
       appRef.current = null;
     };
-  }, [nodes.length, links.length, containerRef, handleZoom, onNodeDragStart, onNodeRightClick]);
+  }, [nodes.length, links.length, containerRef, handleZoom, onNodeDragStart, onNodeRightClick, linkCurvatures]);
 
   // Effect to update node visibility when renaming
   useEffect(() => {

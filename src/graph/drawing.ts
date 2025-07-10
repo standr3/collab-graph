@@ -45,7 +45,13 @@ const getRectEdgePoint = (sourcePoint: PIXI.Point, targetNode: GraphNode): PIXI.
   return new PIXI.Point(endX, endY);
 };
 
-export const drawLink = (linkGfx: PIXI.Graphics, sourceNode: GraphNode, targetNode: GraphNode) => {
+export const drawLink = (
+  linkGfx: PIXI.Graphics,
+  sourceNode: GraphNode,
+  targetNode: GraphNode,
+  baseCurvature: number,
+  graphCenter?: PIXI.Point
+) => {
   linkGfx.clear();
   if (!sourceNode.x || !sourceNode.y || !targetNode.x || !targetNode.y) return;
 
@@ -67,16 +73,37 @@ export const drawLink = (linkGfx: PIXI.Graphics, sourceNode: GraphNode, targetNo
   ex -= padding * Math.cos(angle);
   ey -= padding * Math.sin(angle);
 
-  const midX = (sx + ex) / 2;
-  const midY = (sy + ey) / 2;
+  let curvature = baseCurvature;
+  if (graphCenter) {
+    const midX = (sx + ex) / 2;
+    const midY = (sy + ey) / 2;
+    
+    const normalAngle = angle - Math.PI / 2;
+    const normalX = Math.cos(normalAngle);
+    const normalY = Math.sin(normalAngle);
 
-  const normalAngle = angle - Math.PI / 2;
-  const curveIntensity = Math.sqrt(dx * dx + dy * dy) * 0.1;
-  const ctrlX = midX + Math.cos(normalAngle) * curveIntensity;
-  const ctrlY = midY + Math.sin(normalAngle) * curveIntensity;
+    const toMidpointX = midX - graphCenter.x;
+    const toMidpointY = midY - graphCenter.y;
 
-  linkGfx.moveTo(sx, sy);
-  linkGfx.quadraticCurveTo(ctrlX, ctrlY, ex, ey);
+    const dotProduct = toMidpointX * normalX + toMidpointY * normalY;
+    const direction = Math.sign(dotProduct) || 1;
+    
+    curvature = direction * Math.abs(baseCurvature);
+  }
+
+  if (curvature === 0) {
+    linkGfx.moveTo(sx, sy);
+    linkGfx.lineTo(ex, ey);
+  } else {
+    const midX = (sx + ex) / 2;
+    const midY = (sy + ey) / 2;
+    const normalAngle = angle - Math.PI / 2;
+    const curveIntensity = Math.sqrt(dx * dx + dy * dy) * curvature;
+    const ctrlX = midX + Math.cos(normalAngle) * curveIntensity;
+    const ctrlY = midY + Math.sin(normalAngle) * curveIntensity;
+    linkGfx.moveTo(sx, sy);
+    linkGfx.quadraticCurveTo(ctrlX, ctrlY, ex, ey);
+  }
   linkGfx.stroke({ width: 1.5, color: 0xabb8c3, alpha: 0.9 });
 
   const arrowSize = 8;
