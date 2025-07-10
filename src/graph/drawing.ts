@@ -87,7 +87,7 @@ export const drawLink = (linkGfx: PIXI.Graphics, sourceNode: GraphNode, targetNo
 
 export const drawNode = (nodeData: GraphNode): PIXI.Container => {
     const nodeContainer = new PIXI.Container();
-    nodeContainer.name = nodeData.id;
+    nodeContainer.label = nodeData.id;
 
     const minWidth = 80, maxWidth = 180, padding = 16;
     const textStyle: PIXI.TextStyleOptions = { 
