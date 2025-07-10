@@ -71,5 +71,22 @@ export function endDragNode(nodeId: string) {
     node.fx = null;
     node.fy = null;
   }
+}
 
+export function freezeNode(nodeId: string) {
+  if (!simulation) return;
+  const node = simulation.nodes().find((n) => n.id === nodeId);
+  if (node) {
+    node.fx = node.x;
+    node.fy = node.y;
+  }
+}
+
+export function unfreezeNode(nodeId: string) {
+  if (!simulation) return;
+  const node = simulation.nodes().find((n) => n.id === nodeId);
+  if (node) {
+    node.fx = null;
+    node.fy = null;
+  }
 }

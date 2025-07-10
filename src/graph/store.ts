@@ -26,6 +26,7 @@
 
 import { create } from "zustand";
 import { type SimulationNodeDatum, type SimulationLinkDatum } from "d3-force";
+import { freezeNode, unfreezeNode } from "./simulation";
 
 export interface NodeData {
   id: string;
@@ -61,6 +62,10 @@ interface GraphState {
   nodes: Node[];
   /** Array of current links in the graph */
   links: Link[];
+  /** Context menu state */
+  contextMenu: { x: number; y: number; nodeId: string } | null;
+  /** ID of the node that is currently "frozen" and should not be affected by simulation forces */
+  frozenNodeId: string | null;
   /**
    * Initialize the graph state with given nodes and links.
    * @param nodes - Array of basic node data to initialize the graph
@@ -73,12 +78,26 @@ interface GraphState {
    */
   addNode: (newNode: NodeData) => void;
   /**
+   * Deletes a node and its connected links from the graph.
+   * @param nodeId - The ID of the node to delete
+   */
+  deleteNode: (nodeId: string) => void;
+  /**
    * Update positions (id, x, y) of existing nodes in the graph.
-   * @param updatedNodes - Array containing node IDs and their new positions
+   * @param updatedNodes - Array containing node IDs and their new x,y coordinates
    */
   updateNodePositions: (
     updatedNodes: { id: string; x: number; y: number }[]
   ) => void;
+  /**
+   * Opens the context menu for a specific node.
+   * @param nodeId - The ID of the node to open the menu for
+   * @param x - The x-coordinate for the menu
+   * @param y - The y-coordinate for the menu
+   */
+  openContextMenu: (nodeId: string, x: number, y: number) => void;
+  /** Closes the currently open context menu. */
+  closeContextMenu: () => void;
 }
 
 /**
@@ -87,6 +106,8 @@ interface GraphState {
 export const useGraphStore = create<GraphState>((set) => ({
   nodes: [],
   links: [],
+  contextMenu: null,
+  frozenNodeId: null,
 
   /**
    * Initializes the graph state with provided nodes and links.
@@ -136,6 +157,24 @@ export const useGraphStore = create<GraphState>((set) => ({
   },
 
   /**
+   * Deletes a node and any links connected to it.
+   *
+   * @param nodeId - The ID of the node to be deleted
+   */
+  deleteNode: (nodeId: string): void => {
+    set((state) => ({
+      nodes: state.nodes.filter((node) => node.id !== nodeId),
+      links: state.links.filter((link) => {
+        const source = link.source as Node | string | number;
+        const target = link.target as Node | string | number;
+        const sourceId = typeof source === "object" ? source.id : source;
+        const targetId = typeof target === "object" ? target.id : target;
+        return sourceId !== nodeId && targetId !== nodeId;
+      }),
+    }));
+  },
+
+  /**
    * Updates the positions of existing nodes in the graph.
    * Only nodes matching provided IDs will be updated.
    *
@@ -153,5 +192,29 @@ export const useGraphStore = create<GraphState>((set) => ({
         return node;
       }),
     }));
+  },
+
+  /**
+   * Opens the context menu at a specific position for a given node.
+   * Also sets the node as "frozen" to prevent it from moving.
+   *
+   * @param nodeId - The ID of the node to open the menu for
+   * @param x - The screen x-coordinate to display the menu
+   * @param y - The screen y-coordinate to display the menu
+   */
+  openContextMenu: (nodeId: string, x: number, y: number): void => {
+    freezeNode(nodeId);
+    set({ contextMenu: { nodeId, x, y }, frozenNodeId: nodeId });
+  },
+
+  /**
+   * Closes the context menu and "un-freezes" the associated node.
+   */
+  closeContextMenu: (): void => {
+    const { frozenNodeId } = useGraphStore.getState();
+    if (frozenNodeId) {
+      unfreezeNode(frozenNodeId);
+    }
+    set({ contextMenu: null, frozenNodeId: null });
   },
 }));

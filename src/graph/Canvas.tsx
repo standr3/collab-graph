@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { useGraphStore } from "./store";
 import { usePixi } from "./hooks/usePixi";
 import Toolbar from "./components/Toolbar";
+import { ContextMenu } from "./components/ContextMenu";
 // import StatsPanel from "./components/StatsPanel";
 
 /**
@@ -19,7 +20,21 @@ const Canvas: React.FC = () => {
   const { appRef, zoom, centerView, fitView } = usePixi(containerRef);
 
   // Extract actions from Zustand store to initialize and modify graph state
-  const { initializeGraph, addNode  } = useGraphStore();
+  const { initializeGraph, addNode, closeContextMenu } = useGraphStore();
+
+  /**
+   * Effect to initialize graph state once on component mount.
+   * Sets up initial nodes and links in Zustand store.
+   */
+  useEffect(() => {
+    const container = containerRef.current;
+    const preventContextMenu = (e: MouseEvent) => e.preventDefault();
+    container?.addEventListener("contextmenu", preventContextMenu);
+
+    return () => {
+      container?.removeEventListener("contextmenu", preventContextMenu);
+    };
+  }, []);
 
   /**
    * Effect to initialize graph state once on component mount.
@@ -66,7 +81,10 @@ const Canvas: React.FC = () => {
   console.log("Finished rendering");
 
   return (
-    <div style={{ width: "100vw", height: "100vh", overflow: "hidden" }}>
+    <div
+      style={{ width: "100vw", height: "100vh", overflow: "hidden" }}
+      onClick={closeContextMenu}
+    >
       <Toolbar
         onZoomIn={() => zoom(1.2)}
         onZoomOut={() => zoom(0.8)}
@@ -74,6 +92,7 @@ const Canvas: React.FC = () => {
         onFitView={fitView}
         onAddNode={handleAddNode}
       />
+      <ContextMenu />
       {/* Removed StatsPanel since fps is no longer tracked */}
       <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
     </div>

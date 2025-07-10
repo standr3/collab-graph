@@ -28,7 +28,7 @@ export const usePixi = (
   const worldRef = useRef<PIXI.Container | null>(null);
   const pixiNodes = useRef<Map<string, PIXI.Container>>(new Map());
   const pixiLinks = useRef<Map<string, PIXI.Graphics>>(new Map());
-  const { nodes, links } = useGraphStore();
+  const { nodes, links, openContextMenu } = useGraphStore();
   const isPanning = useRef<boolean>(false);
   const lastPanPoint = useRef<PIXI.Point>(new PIXI.Point());
   const activeDragTargetId = useRef<string | null>(null);
@@ -39,6 +39,7 @@ export const usePixi = (
    * @param event - PIXI FederatedPointerEvent from pointer down on node container
    */
   const onNodeDragStart = useCallback((event: PIXI.FederatedPointerEvent): void => {
+    if (event.button !== 0) return; // Only allow left-click to drag
     event.stopPropagation();
     const targetId = (event.currentTarget as PIXI.Container).name;
     if (targetId) {
@@ -48,6 +49,21 @@ export const usePixi = (
       startDragNode(targetId);
     }
   }, []);
+
+  /**
+   * Handler for right-clicking a node to open the context menu.
+   * @param event - PIXI FederatedPointerEvent from right-click on node container
+   */
+  const onNodeRightClick = useCallback(
+    (event: PIXI.FederatedPointerEvent): void => {
+      event.stopPropagation();
+      const targetId = (event.currentTarget as PIXI.Container).name;
+      if (targetId) {
+        openContextMenu(targetId, event.global.x, event.global.y);
+      }
+    },
+    [openContextMenu]
+  );
 
   /**
    * Updates the resolution (quality) of text elements based on current zoom level.
@@ -181,6 +197,7 @@ export const usePixi = (
       nodes.forEach((nodeData) => {
         const nodeContainer = drawNode(nodeData);
         nodeContainer.on("pointerdown", onNodeDragStart);
+        nodeContainer.on("rightdown", onNodeRightClick);
         nodesContainer.addChild(nodeContainer);
         pixiNodes.current.set(nodeData.id, nodeContainer);
       });
@@ -271,7 +288,7 @@ export const usePixi = (
       appRef.current?.destroy(true);
       appRef.current = null;
     };
-  }, [nodes.length, links.length, containerRef, handleZoom, onNodeDragStart]);
+  }, [nodes.length, links.length, containerRef, handleZoom, onNodeDragStart, onNodeRightClick]);
 
   // Effect to add newly added nodes to PIXI container and simulation
   useEffect(() => {
@@ -287,6 +304,7 @@ export const usePixi = (
     newNodes.forEach(nodeData => {
       const nodeContainer = drawNode(nodeData);
       nodeContainer.on("pointerdown", onNodeDragStart);
+      nodeContainer.on("rightdown", onNodeRightClick);
 
       const worldPoint = new PIXI.Point(window.innerWidth / 2, window.innerHeight / 2);
       const localPoint = world.toLocal(worldPoint);
@@ -303,7 +321,7 @@ export const usePixi = (
       updateSimulationNodes(nodes);
     }
 
-  }, [nodes, onNodeDragStart]);
+  }, [nodes, onNodeDragStart, onNodeRightClick]);
 
   return { appRef, zoom, centerView, fitView };
 };
