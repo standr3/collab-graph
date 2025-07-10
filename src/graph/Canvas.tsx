@@ -17,7 +17,7 @@ const Canvas: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Custom hook for PixiJS integration, provides app ref and control functions
-  const { appRef, zoom, centerView, fitView } = usePixi(containerRef);
+  const { zoom, centerView, fitView } = usePixi(containerRef);
 
   // Extract actions from Zustand store to initialize and modify graph state
   const { initializeGraph, addNode, closeContextMenu } = useGraphStore();
