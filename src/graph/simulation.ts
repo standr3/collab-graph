@@ -19,11 +19,14 @@ export function initializeSimulation(
       "link",
       forceLink<Node, Link>(links)
         .id((d) => d.id)
-        .distance(150)
+        .distance(200) // Increased distance
         .strength(0.1)
     )
-    .force("charge", forceManyBody().strength(-400))
-    .force("center", forceCenter(window.innerWidth / 2, window.innerHeight / 2))
+    .force("charge", forceManyBody().strength(-1000)) // Increased repulsion
+    .force(
+      "center",
+      forceCenter(window.innerWidth / 2, window.innerHeight / 2).strength(0.05)
+    ) // Weaker center force
     .on("tick", onTick);
 }
 

@@ -3,6 +3,7 @@ import { useGraphStore } from "./store";
 import { usePixi } from "./hooks/usePixi";
 import Toolbar from "./components/Toolbar";
 import { ContextMenu } from "./components/ContextMenu";
+import { RenameNodeInput } from "./components/RenameNodeInput";
 // import StatsPanel from "./components/StatsPanel";
 
 /**
@@ -93,6 +94,7 @@ const Canvas: React.FC = () => {
         onAddNode={handleAddNode}
       />
       <ContextMenu />
+      <RenameNodeInput />
       {/* Removed StatsPanel since fps is no longer tracked */}
       <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
     </div>

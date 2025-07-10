@@ -67,8 +67,16 @@ export const drawLink = (linkGfx: PIXI.Graphics, sourceNode: GraphNode, targetNo
   ex -= padding * Math.cos(angle);
   ey -= padding * Math.sin(angle);
 
+  const midX = (sx + ex) / 2;
+  const midY = (sy + ey) / 2;
+
+  const normalAngle = angle - Math.PI / 2;
+  const curveIntensity = Math.sqrt(dx * dx + dy * dy) * 0.1;
+  const ctrlX = midX + Math.cos(normalAngle) * curveIntensity;
+  const ctrlY = midY + Math.sin(normalAngle) * curveIntensity;
+
   linkGfx.moveTo(sx, sy);
-  linkGfx.lineTo(ex, ey);
+  linkGfx.quadraticCurveTo(ctrlX, ctrlY, ex, ey);
   linkGfx.stroke({ width: 1.5, color: 0xabb8c3, alpha: 0.9 });
 
   const arrowSize = 8;

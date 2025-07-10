@@ -66,6 +66,8 @@ interface GraphState {
   contextMenu: { x: number; y: number; nodeId: string } | null;
   /** ID of the node that is currently "frozen" and should not be affected by simulation forces */
   frozenNodeId: string | null;
+  /** ID of the node currently being renamed */
+  renamingNodeId: string | null;
   /**
    * Initialize the graph state with given nodes and links.
    * @param nodes - Array of basic node data to initialize the graph
@@ -83,6 +85,12 @@ interface GraphState {
    */
   deleteNode: (nodeId: string) => void;
   /**
+   * Updates the label of a specific node.
+   * @param nodeId - The ID of the node to update
+   * @param label - The new label for the node
+   */
+  updateNodeLabel: (nodeId: string, label: string) => void;
+  /**
    * Update positions (id, x, y) of existing nodes in the graph.
    * @param updatedNodes - Array containing node IDs and their new x,y coordinates
    */
@@ -98,6 +106,11 @@ interface GraphState {
   openContextMenu: (nodeId: string, x: number, y: number) => void;
   /** Closes the currently open context menu. */
   closeContextMenu: () => void;
+  /**
+   * Sets the node to be renamed.
+   * @param nodeId - The ID of the node to start renaming, or null to cancel
+   */
+  startRenamingNode: (nodeId: string | null) => void;
 }
 
 /**
@@ -108,6 +121,7 @@ export const useGraphStore = create<GraphState>((set) => ({
   links: [],
   contextMenu: null,
   frozenNodeId: null,
+  renamingNodeId: null,
 
   /**
    * Initializes the graph state with provided nodes and links.
@@ -175,6 +189,20 @@ export const useGraphStore = create<GraphState>((set) => ({
   },
 
   /**
+   * Updates the label of a specific node.
+   *
+   * @param nodeId - The ID of the node to update
+   * @param label - The new label for the node
+   */
+  updateNodeLabel: (nodeId: string, label: string): void => {
+    set((state) => ({
+      nodes: state.nodes.map((node) =>
+        node.id === nodeId ? { ...node, label } : node
+      ),
+    }));
+  },
+
+  /**
    * Updates the positions of existing nodes in the graph.
    * Only nodes matching provided IDs will be updated.
    *
@@ -216,5 +244,26 @@ export const useGraphStore = create<GraphState>((set) => ({
       unfreezeNode(frozenNodeId);
     }
     set({ contextMenu: null, frozenNodeId: null });
+  },
+
+  /**
+   * Sets the node to be renamed and closes the context menu.
+   *
+   * @param nodeId - The ID of the node to rename, or null to cancel
+   */
+  startRenamingNode: (nodeId: string | null): void => {
+    set((state) => {
+      if (state.contextMenu) {
+        const { frozenNodeId } = useGraphStore.getState();
+        if (frozenNodeId) {
+          unfreezeNode(frozenNodeId);
+        }
+      }
+      return {
+        renamingNodeId: nodeId,
+        contextMenu: null,
+        frozenNodeId: null,
+      };
+    });
   },
 }));

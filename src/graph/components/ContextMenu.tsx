@@ -1,13 +1,17 @@
 import { useGraphStore } from "../store";
 
 export const ContextMenu = () => {
-  const { contextMenu, deleteNode, closeContextMenu } = useGraphStore();
+  const { contextMenu, deleteNode, startRenamingNode } = useGraphStore();
 
   if (!contextMenu) return null;
 
   const handleDelete = () => {
     deleteNode(contextMenu.nodeId);
-    closeContextMenu();
+    startRenamingNode(null); // Close context menu
+  };
+
+  const handleRename = () => {
+    startRenamingNode(contextMenu.nodeId);
   };
 
   return (
@@ -22,6 +26,12 @@ export const ContextMenu = () => {
           onClick={handleDelete}
         >
           Delete
+        </li>
+        <li
+          className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+          onClick={handleRename}
+        >
+          Rename
         </li>
       </ul>
     </div>

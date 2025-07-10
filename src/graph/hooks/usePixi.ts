@@ -28,7 +28,7 @@ export const usePixi = (
   const worldRef = useRef<PIXI.Container | null>(null);
   const pixiNodes = useRef<Map<string, PIXI.Container>>(new Map());
   const pixiLinks = useRef<Map<string, PIXI.Graphics>>(new Map());
-  const { nodes, links, openContextMenu } = useGraphStore();
+  const { nodes, links, openContextMenu, renamingNodeId } = useGraphStore();
   const isPanning = useRef<boolean>(false);
   const lastPanPoint = useRef<PIXI.Point>(new PIXI.Point());
   const activeDragTargetId = useRef<string | null>(null);
@@ -290,6 +290,19 @@ export const usePixi = (
     };
   }, [nodes.length, links.length, containerRef, handleZoom, onNodeDragStart, onNodeRightClick]);
 
+  // Effect to update node visibility when renaming
+  useEffect(() => {
+    if (!worldRef.current) return;
+
+    pixiNodes.current.forEach((nodeContainer, nodeId) => {
+      const isRenaming = nodeId === renamingNodeId;
+      const text = nodeContainer.getChildAt(1) as PIXI.Text | undefined;
+      if (text) {
+        text.visible = !isRenaming;
+      }
+    });
+  }, [renamingNodeId]);
+
   // Effect to add newly added nodes to PIXI container and simulation
   useEffect(() => {
     const world = worldRef.current;
@@ -322,6 +335,21 @@ export const usePixi = (
     }
 
   }, [nodes, onNodeDragStart, onNodeRightClick]);
+
+  // Effect to update node labels
+  useEffect(() => {
+    if (!worldRef.current) return;
+
+    nodes.forEach((node) => {
+      const pixiNode = pixiNodes.current.get(node.id);
+      if (pixiNode) {
+        const text = pixiNode.getChildAt(1) as PIXI.Text | undefined;
+        if (text && text.text !== node.label) {
+          text.text = node.label;
+        }
+      }
+    });
+  }, [nodes]);
 
   return { appRef, zoom, centerView, fitView };
 };
