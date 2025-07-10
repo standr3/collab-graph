@@ -5,4 +5,14 @@ import tailwindcss from "@tailwindcss/vite";
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "pixi.js": ["pixi.js"],
+          "d3-force": ["d3-force"],
+        },
+      },
+    },
+  },
 });
