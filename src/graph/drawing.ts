@@ -74,44 +74,68 @@ export const drawLink = (
   ey -= padding * Math.sin(angle);
 
   let curvature = baseCurvature;
+  let controlPointBase = { x: (sx + ex) / 2, y: (sy + ey) / 2 };
+
   if (graphCenter) {
-    const midX = (sx + ex) / 2;
-    const midY = (sy + ey) / 2;
-    
-    const normalAngle = angle - Math.PI / 2;
-    const normalX = Math.cos(normalAngle);
-    const normalY = Math.sin(normalAngle);
+    const v_se_x = ex - sx;
+    const v_se_y = ey - sy;
+    const len_se = Math.sqrt(v_se_x * v_se_x + v_se_y * v_se_y);
 
-    const toMidpointX = midX - graphCenter.x;
-    const toMidpointY = midY - graphCenter.y;
+    if (len_se > 1e-6) {
+      const v_sc_x = graphCenter.x - sx;
+      const v_sc_y = graphCenter.y - sy;
+      const len_sc = Math.sqrt(v_sc_x * v_sc_x + v_sc_y * v_sc_y);
 
-    const dotProduct = toMidpointX * normalX + toMidpointY * normalY;
-    const direction = Math.sign(dotProduct) || 1;
-    
-    curvature = direction * Math.abs(baseCurvature);
+      let cos_theta = 0;
+      if (len_sc > 1e-6) {
+        const dot_se_sc = v_se_x * v_sc_x + v_se_y * v_sc_y;
+        cos_theta = dot_se_sc / (len_se * len_sc);
+      }
+
+      // 1. Calculate combined curvature magnitude
+      const sin_theta = Math.sqrt(1 - Math.max(0, Math.min(1, cos_theta * cos_theta)));
+      
+      const standardDistance = 300;
+      const distanceFactor = Math.min(len_se / standardDistance, 1.0);
+      
+      let magnitude = (Math.abs(baseCurvature) + 0.15) * sin_theta * distanceFactor;
+
+      // 2. Determine outward direction
+      const midX = (sx + ex) / 2;
+        const midY = (sy + ey) / 2;
+        const normalAngle = angle - Math.PI / 2;
+        const normalX = Math.cos(normalAngle);
+        const normalY = Math.sin(normalAngle);
+        const toMidpointX = midX - graphCenter.x;
+        const toMidpointY = midY - graphCenter.y;
+        const dotProduct = toMidpointX * normalX + toMidpointY * normalY;
+        const direction = Math.sign(dotProduct) || 1;
+        
+        curvature = direction * magnitude;
+    }
   }
 
+  let arrowheadAngle = angle;
   if (curvature === 0) {
     linkGfx.moveTo(sx, sy);
     linkGfx.lineTo(ex, ey);
   } else {
-    const midX = (sx + ex) / 2;
-    const midY = (sy + ey) / 2;
     const normalAngle = angle - Math.PI / 2;
     const curveIntensity = Math.sqrt(dx * dx + dy * dy) * curvature;
-    const ctrlX = midX + Math.cos(normalAngle) * curveIntensity;
-    const ctrlY = midY + Math.sin(normalAngle) * curveIntensity;
+    const ctrlX = controlPointBase.x + Math.cos(normalAngle) * curveIntensity;
+    const ctrlY = controlPointBase.y + Math.sin(normalAngle) * curveIntensity;
     linkGfx.moveTo(sx, sy);
     linkGfx.quadraticCurveTo(ctrlX, ctrlY, ex, ey);
+    arrowheadAngle = Math.atan2(ey - ctrlY, ex - ctrlX);
   }
   linkGfx.stroke({ width: 1.5, color: 0xabb8c3, alpha: 0.9 });
 
   const arrowSize = 8;
   const arrowAngle = Math.PI / 7;
-  const p1x = ex - arrowSize * Math.cos(angle - arrowAngle);
-  const p1y = ey - arrowSize * Math.sin(angle - arrowAngle);
-  const p2x = ex - arrowSize * Math.cos(angle + arrowAngle);
-  const p2y = ey - arrowSize * Math.sin(angle + arrowAngle);
+  const p1x = ex - arrowSize * Math.cos(arrowheadAngle - arrowAngle);
+  const p1y = ey - arrowSize * Math.sin(arrowheadAngle - arrowAngle);
+  const p2x = ex - arrowSize * Math.cos(arrowheadAngle + arrowAngle);
+  const p2y = ey - arrowSize * Math.sin(arrowheadAngle + arrowAngle);
 
   linkGfx.moveTo(ex, ey);
   linkGfx.lineTo(p1x, p1y);
