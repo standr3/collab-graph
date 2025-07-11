@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# 
+bugfixes.txt
+jurnal.txt
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -23,5 +27,3 @@ dist-ssr
 *.sln
 *.sw?
 
-
-jurnal.txt

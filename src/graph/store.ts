@@ -45,6 +45,7 @@ export interface LinkData {
 export interface Node extends SimulationNodeDatum, NodeData {
   width: number;
   height: number;
+  pinned?: boolean;
 }
 
 /**
@@ -111,6 +112,11 @@ interface GraphState {
    * @param nodeId - The ID of the node to start renaming, or null to cancel
    */
   startRenamingNode: (nodeId: string | null) => void;
+  /**
+   * Toggles the pinned state of a node.
+   * @param nodeId - The ID of the node to toggle
+   */
+  toggleNodePin: (nodeId: string) => void;
 }
 
 /**
@@ -239,9 +245,12 @@ export const useGraphStore = create<GraphState>((set) => ({
    * Closes the context menu and "un-freezes" the associated node.
    */
   closeContextMenu: (): void => {
-    const { frozenNodeId } = useGraphStore.getState();
+    const { frozenNodeId, nodes } = useGraphStore.getState();
     if (frozenNodeId) {
-      unfreezeNode(frozenNodeId);
+      const node = nodes.find((n) => n.id === frozenNodeId);
+      if (node && !node.pinned) {
+        unfreezeNode(frozenNodeId);
+      }
     }
     set({ contextMenu: null, frozenNodeId: null });
   },
@@ -254,9 +263,12 @@ export const useGraphStore = create<GraphState>((set) => ({
   startRenamingNode: (nodeId: string | null): void => {
     set((state) => {
       if (state.contextMenu) {
-        const { frozenNodeId } = useGraphStore.getState();
+        const { frozenNodeId, nodes } = useGraphStore.getState();
         if (frozenNodeId) {
-          unfreezeNode(frozenNodeId);
+          const node = nodes.find((n) => n.id === frozenNodeId);
+          if (node && !node.pinned) {
+            unfreezeNode(frozenNodeId);
+          }
         }
       }
       return {
@@ -264,6 +276,26 @@ export const useGraphStore = create<GraphState>((set) => ({
         contextMenu: null,
         frozenNodeId: null,
       };
+    });
+  },
+
+  toggleNodePin: (nodeId: string): void => {
+    set((state) => {
+      const node = state.nodes.find((n) => n.id === nodeId);
+      if (node) {
+        const isPinned = !node.pinned;
+        if (isPinned) {
+          freezeNode(nodeId);
+        } else {
+          unfreezeNode(nodeId);
+        }
+        return {
+          nodes: state.nodes.map((n) =>
+            n.id === nodeId ? { ...n, pinned: isPinned } : n
+          ),
+        };
+      }
+      return state;
     });
   },
 }));

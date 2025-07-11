@@ -1,5 +1,6 @@
 import * as PIXI from 'pixi.js';
 import { type Node as GraphNode } from './store';
+import pinIconUrl from '../assets/pin.svg';
 
 const getRectEdgePoint = (sourcePoint: PIXI.Point, targetNode: GraphNode): PIXI.Point => {
   const sx = sourcePoint.x;
@@ -144,9 +145,13 @@ export const drawLink = (
   linkGfx.stroke({ width: 1.5, color: 0xabb8c3, alpha: 0.9 });
 };
 
-export const drawNode = (nodeData: GraphNode): PIXI.Container => {
+export const drawNode = (
+  nodeData: GraphNode,
+  onPinToggle: (nodeId: string) => void,
+  pinSvgData: PIXI.GraphicsContext
+): PIXI.Container => {
     const nodeContainer = new PIXI.Container();
-    nodeContainer.label = nodeData.id;
+    nodeContainer.name = nodeData.id;
 
     const minWidth = 80, maxWidth = 180, padding = 16;
     const textStyle: PIXI.TextStyleOptions = { 
@@ -164,9 +169,22 @@ export const drawNode = (nodeData: GraphNode): PIXI.Container => {
     nodeData.height = Math.max(40, tempText.height + padding * 2);
     tempText.destroy();
 
-    const box = new PIXI.Graphics().roundRect(0, 0, nodeData.width, nodeData.height, 10).fill({color: 0xffffff, alpha: 0.9}).stroke({ width: 1, color: 0x000000, alpha: 0.1 });
+    const box = new PIXI.Graphics();
     const text = new PIXI.Text({ text: nodeData.label, style: {...textStyle, wordWrapWidth: nodeData.width - 32}});
     text.resolution = 2;
+
+    const pinnedStyle = { width: 2, color: 0x1a202c, alpha: 0.8 };
+    const unpinnedStyle = { width: 1, color: 0x000000, alpha: 0.1 };
+
+    const redrawBox = (isPinned: boolean) => {
+        box.clear();
+        const style = isPinned ? pinnedStyle : unpinnedStyle;
+        box.roundRect(0, 0, nodeData.width, nodeData.height, 10)
+           .fill({ color: 0xffffff, alpha: 0.9 })
+           .stroke(style);
+    };
+
+    redrawBox(!!nodeData.pinned);
 
     if (text.height > 18 * 3) {
         let truncatedText = nodeData.label;
@@ -181,6 +199,45 @@ export const drawNode = (nodeData: GraphNode): PIXI.Container => {
     text.scale.set(1 / text.resolution);
 
     nodeContainer.addChild(box, text);
+
+    // Pin button
+    const pinButton = new PIXI.Graphics(pinSvgData);
+    
+    const scale = 16 / Math.max(pinButton.width, pinButton.height);
+    pinButton.scale.set(scale);
+    
+    // Set the pivot to the center of the graphics bounds
+    const bounds = pinButton.getBounds();
+    pinButton.pivot.set(bounds.width / 2 / scale, bounds.height / 2 / scale);
+
+    const pinPadding = 5;
+    const pinX = nodeData.width / 2 - pinPadding;
+    const pinY = -nodeData.height / 2 + pinPadding;
+
+    const setPinButtonState = (isPinned: boolean) => {
+        pinButton.tint = isPinned ? 0x1a202c : 0xaaaaaa;
+    };
+
+    setPinButtonState(!!nodeData.pinned);
+    pinButton.position.set(pinX, pinY);
+    pinButton.eventMode = 'static';
+    pinButton.cursor = 'pointer';
+    
+    pinButton.on('pointerdown', (e) => {
+        if (e.button === 0) {
+            e.stopPropagation();
+            onPinToggle(nodeData.id);
+        }
+    });
+
+    nodeContainer.addChild(pinButton);
+    
+    // Update pin visual state when node data changes
+    (nodeContainer as any).updatePin = (isPinned: boolean) => {
+        setPinButtonState(isPinned);
+        redrawBox(isPinned);
+    };
+
     nodeContainer.eventMode = "static";
     nodeContainer.cursor = "pointer";
 
