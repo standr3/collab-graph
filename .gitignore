@@ -13,7 +13,7 @@ dist-ssr
 *.local
 
 # 
-bugfixes.txt
+logs.txt
 jurnal.txt
 
 # Editor directories and files
