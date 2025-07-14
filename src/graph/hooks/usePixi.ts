@@ -2,16 +2,31 @@ import { useRef, useEffect, useCallback, useMemo, useState } from 'react';
 import * as PIXI from 'pixi.js';
 import { gsap } from 'gsap';
 import { useGraphStore, type Node as GraphNode, type Link as GraphLink } from '../store';
-import { initializeSimulation, startDragNode, dragNode, endDragNode, updateSimulationNodes, updateSimulationCenter, updateSimulationLinks, getSimulationNodes } from '../simulation';
+import { initializeSimulation, startDragNode, dragNode, endDragNode, updateSimulationNodes, updateSimulationCenter, updateSimulationLinks, getSimulationNodes, stopSimulation } from '../simulation';
 import { drawNode, drawLink } from '../drawing';
 import pinIconUrl from '../../assets/pin.svg';
+import { LINK_BASE_CURVATURE, LINK_CURVATURE_STEP } from '../config';
 
+/**
+ * A comprehensive React hook to manage a PIXI.js-based interactive graph.
+ * This hook orchestrates the PIXI application, D3 force simulation, and user interactions.
+ *
+ * @param containerRef - A React ref to the div element that will host the PIXI canvas.
+ * @returns An object containing control functions for the canvas view.
+ */
 export const usePixi = (
   containerRef: React.RefObject<HTMLDivElement | null>
 ): {
+  /** A mutable ref to the PIXI.Application instance. */
   appRef: React.MutableRefObject<PIXI.Application | null>;
+  /**
+   * Zooms the view by a given factor.
+   * @param factor - The zoom factor (e.g., 1.2 for zoom in, 0.8 for zoom out).
+   */
   zoom: (factor: number) => void;
+  /** Centers the view on the graph's barycenter. */
   centerView: () => void;
+  /** Fits the entire graph within the current viewport. */
   fitView: () => void;
 } => {
   const appRef = useRef<PIXI.Application | null>(null);
@@ -28,14 +43,20 @@ export const usePixi = (
 
   const { nodes, links, openContextMenu, renamingNodeId, toggleNodePin } = useGraphStore();
 
+  /**
+   * Toggles the pinned state of a node. Memoized with useCallback.
+   */
   const handlePinToggle = useCallback((nodeId: string) => {
     toggleNodePin(nodeId);
   }, [toggleNodePin]);
 
+  /**
+   * Handles the start of a node drag event.
+   */
   const onNodeDragStart = useCallback((event: PIXI.FederatedPointerEvent): void => {
     if (event.button !== 0) return;
     event.stopPropagation();
-    const targetId = (event.currentTarget as PIXI.Container).name;
+    const targetId = (event.currentTarget as PIXI.Container).label;
     if (targetId) {
       activeDragTargetId.current = targetId;
       const pixiNode = pixiNodes.current.get(targetId);
@@ -44,10 +65,13 @@ export const usePixi = (
     }
   }, []);
 
+  /**
+   * Handles the right-click event on a node to open the context menu.
+   */
   const onNodeRightClick = useCallback(
     (event: PIXI.FederatedPointerEvent): void => {
       event.stopPropagation();
-      const targetId = (event.currentTarget as PIXI.Container).name;
+      const targetId = (event.currentTarget as PIXI.Container).label;
       if (targetId) {
         openContextMenu(targetId, event.global.x, event.global.y);
       }
@@ -55,6 +79,10 @@ export const usePixi = (
     [openContextMenu]
   );
 
+  /**
+   * Dynamically updates the resolution of text objects based on the world scale
+   * to maintain sharpness when zoomed in.
+   */
   const updateTextQuality = useCallback((): void => {
     if (!worldRef.current) return;
     const worldScale = worldRef.current.scale.x;
@@ -68,6 +96,9 @@ export const usePixi = (
     });
   }, []);
 
+  /**
+   * Programmatically zooms the view towards the center of the screen.
+   */
   const zoom = useCallback((factor: number): void => {
     if (!worldRef.current || !appRef.current) return;
     const world = worldRef.current;
@@ -80,6 +111,9 @@ export const usePixi = (
     gsap.to(world.scale, { x: newScale, y: newScale, duration: 0.3, onUpdate: updateTextQuality });
   }, [updateTextQuality]);
 
+  /**
+   * Smoothly animates the view to center on the calculated barycenter of all nodes.
+   */
   const centerView = useCallback((): void => {
     if (!worldRef.current || !appRef.current || nodes.length === 0) return;
     const world = worldRef.current;
@@ -91,11 +125,15 @@ export const usePixi = (
     gsap.to(world, { x: targetX, y: targetY, duration: 0.5, ease: "power2.out" });
   }, [nodes]);
 
+  /**
+   * Calculates the bounding box of all nodes and adjusts the viewport's scale and position
+   * to fit the entire graph into view with a specified padding.
+   */
   const fitView = useCallback((): void => {
     if (!worldRef.current || !appRef.current || nodes.length === 0) return;
     const world = worldRef.current;
     const app = appRef.current;
-    const padding = 100;
+    const padding = 100; // This padding is for the view, not a graph element, so it stays.
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     nodes.forEach((node) => {
       minX = Math.min(minX, node.x ?? Infinity);
@@ -117,6 +155,10 @@ export const usePixi = (
     gsap.to(world.scale, { x: newScale, y: newScale, duration: 0.5, onUpdate: updateTextQuality });
   }, [nodes, updateTextQuality]);
 
+  /**
+   * Calculates curvatures for links to prevent overlaps between nodes with multiple links.
+   * This is memoized to avoid recalculation on every render.
+   */
   const linkCurvatures = useMemo(() => {
     const curvatures = new Map<string, number>();
     const linkGroups = new Map<string, GraphLink[]>();
@@ -136,14 +178,13 @@ export const usePixi = (
         if (group.length === 0) return;
         const total = group.length;
         if (total === 1) {
-            curvatures.set(group[0].id, 0.15);
+            curvatures.set(group[0].id, LINK_BASE_CURVATURE);
             return;
         }
         group.sort((a, b) => a.id.localeCompare(b.id));
-        const step = 0.25;
         const center = (total - 1) / 2;
         group.forEach((link, i) => {
-            const curvature = (i - center) * step;
+            const curvature = (i - center) * LINK_CURVATURE_STEP;
             curvatures.set(link.id, curvature);
         });
     });
@@ -156,6 +197,25 @@ export const usePixi = (
   useEffect(() => {
     if (!containerRef.current || appRef.current) return;
 
+    let isCancelled = false;
+    const container = containerRef.current; // Capture ref for cleanup
+
+    const handleZoom = (event: WheelEvent) => {
+      event.preventDefault();
+      if (!worldRef.current) return;
+      const world = worldRef.current;
+      const scaleFactor = 1.1;
+      const newScale = event.deltaY < 0 ? world.scale.x * scaleFactor : world.scale.x / scaleFactor;
+      const mousePosition = new PIXI.Point(event.clientX, event.clientY);
+      const worldPoint = world.toLocal(mousePosition);
+      const newWorldX = mousePosition.x - worldPoint.x * newScale;
+      const newWorldY = mousePosition.y - worldPoint.y * newScale;
+      world.scale.set(newScale);
+      world.position.set(newWorldX, newWorldY);
+      updateTextQuality();
+    };
+    container.addEventListener('wheel', handleZoom, { passive: false });
+
     const init = async () => {
       const app = new PIXI.Application();
       await app.init({
@@ -163,8 +223,20 @@ export const usePixi = (
         antialias: true,
         resizeTo: window,
       });
+
+      if (isCancelled) {
+        app.destroy(true, true);
+        return;
+      }
+
       appRef.current = app;
-      containerRef.current!.appendChild(app.canvas);
+      // Ensure container is still mounted before appending canvas
+      if (containerRef.current) {
+        containerRef.current.appendChild(app.canvas);
+      } else {
+        app.destroy(true, true);
+        return;
+      }
 
       const world = new PIXI.Container();
       worldRef.current = world;
@@ -179,6 +251,8 @@ export const usePixi = (
         src: pinIconUrl,
         data: { parseAsGraphicsContext: true },
       });
+
+      if (isCancelled) return;
 
       const onTick = () => {
         const simulationNodes = getSimulationNodes();
@@ -219,22 +293,6 @@ export const usePixi = (
       };
 
       initializeSimulation(() => useGraphStore.getState().nodes, () => useGraphStore.getState().links, onTick, app.screen.width, app.screen.height);
-
-      const handleZoom = (event: WheelEvent) => {
-        event.preventDefault();
-        if (!worldRef.current) return;
-        const world = worldRef.current;
-        const scaleFactor = 1.1;
-        const newScale = event.deltaY < 0 ? world.scale.x * scaleFactor : world.scale.x / scaleFactor;
-        const mousePosition = new PIXI.Point(event.clientX, event.clientY);
-        const worldPoint = world.toLocal(mousePosition);
-        const newWorldX = mousePosition.x - worldPoint.x * newScale;
-        const newWorldY = mousePosition.y - worldPoint.y * newScale;
-        world.scale.set(newScale);
-        world.position.set(newWorldX, newWorldY);
-        updateTextQuality();
-      };
-      containerRef.current?.addEventListener('wheel', handleZoom, { passive: false });
 
       const onPointerMove = (event: PIXI.FederatedPointerEvent) => {
         const mousePosition = event.global;
@@ -284,8 +342,26 @@ export const usePixi = (
     init();
 
     return () => {
-      appRef.current?.destroy(true);
+      isCancelled = true;
+      // Robust cleanup for React 18 StrictMode.
+      // This ensures that on unmount/remount, the state is completely reset.
+      container.removeEventListener('wheel', handleZoom);
+      stopSimulation();
+      
+      // The second argument to destroy removes the canvas from the DOM.
+      appRef.current?.destroy(true, true);
       appRef.current = null;
+
+      // Reset all refs to ensure a clean slate for re-initialization.
+      worldRef.current = null;
+      nodesContainerRef.current = null;
+      linksContainerRef.current = null;
+      pixiNodes.current.clear();
+      pixiLinks.current.clear();
+      pinSvgDataRef.current = null;
+      
+      // Reset component state.
+      setIsInitialized(false);
     };
   }, []);
 

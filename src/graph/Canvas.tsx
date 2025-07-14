@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from "react";
+import { v4 as uuidv4 } from "uuid";
 import { useGraphStore } from "./store";
 import { usePixi } from "./hooks/usePixi";
 import Toolbar from "./components/Toolbar";
@@ -11,9 +12,6 @@ import { RenameNodeInput } from "./components/RenameNodeInput";
  * Manages graph initialization, PixiJS setup, and UI controls.
  */
 const Canvas: React.FC = () => {
-  // Debug: log every render
-  console.log('Rendering Canvas');
-
   // Ref for the container DOM element where PixiJS app will mount
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -22,6 +20,7 @@ const Canvas: React.FC = () => {
 
   // Extract actions from Zustand store to initialize and modify graph state
   const { initializeGraph, addNode, closeContextMenu } = useGraphStore();
+  const graphInitialized = useRef(false);
 
   /**
    * Effect to initialize graph state once on component mount.
@@ -42,6 +41,9 @@ const Canvas: React.FC = () => {
    * Sets up initial nodes and links in Zustand store.
    */
   useEffect(() => {
+    // Prevent re-initialization on StrictMode re-mount
+    if (graphInitialized.current) return;
+    graphInitialized.current = true;
 
     const initialNodes = [
       { id: "1", label: "Start" },
@@ -68,18 +70,15 @@ const Canvas: React.FC = () => {
 
   /**
    * Handler invoked by Toolbar to add a new node to the graph.
-   * Generates a unique ID based on timestamp.
+   * Generates a unique ID using uuid.
    */
   const handleAddNode = (): void => {
     const newNode = {
-      id: `node-${Date.now()}`,
+      id: uuidv4(),
       label: "Nod Nou",
     };
     addNode(newNode);
   };
-
-  // Debug: signal render complete
-  console.log("Finished rendering");
 
   return (
     <div

@@ -8,6 +8,13 @@ import {
   type ForceLink,
 } from "d3-force";
 import type { Node, Link } from "./store";
+import {
+  LINK_DISTANCE,
+  CHARGE_STRENGTH,
+  CENTER_STRENGTH,
+  SIMULATION_ALPHA,
+  DRAG_ALPHA_TARGET,
+} from "./config";
 
 let simulation: Simulation<Node, Link> | null = null;
 
@@ -26,11 +33,11 @@ export function initializeSimulation(
       "link",
       forceLink<Node, Link>(links)
         .id((d) => d.id)
-        .distance(200)
-        .strength(0.1)
+        .distance(LINK_DISTANCE)
+        .strength(CENTER_STRENGTH)
     )
-    .force("charge", forceManyBody().strength(-1000))
-    .force("center", forceCenter(width / 2, height / 2).strength(0.1))
+    .force("charge", forceManyBody().strength(CHARGE_STRENGTH))
+    .force("center", forceCenter(width / 2, height / 2).strength(CENTER_STRENGTH))
     .on("tick", onTick);
 }
 
@@ -40,7 +47,7 @@ export function updateSimulationCenter(width: number, height: number) {
   if (centerForce) {
     centerForce.x(width / 2);
     centerForce.y(height / 2);
-    simulation.alpha(0.3).restart();
+    simulation.alpha(SIMULATION_ALPHA).restart();
   }
 }
 
@@ -64,7 +71,7 @@ export function updateSimulationNodes(nodes: Node[]) {
   });
 
   simulation.nodes(nodes);
-  simulation.alpha(0.3).restart();
+  simulation.alpha(SIMULATION_ALPHA).restart();
 }
 
 export function updateSimulationLinks(links: Link[]) {
@@ -72,7 +79,7 @@ export function updateSimulationLinks(links: Link[]) {
   const linkForce = simulation.force<ForceLink<Node, Link>>("link");
   if (linkForce) {
     linkForce.links(links);
-    simulation.alpha(0.3).restart();
+    simulation.alpha(SIMULATION_ALPHA).restart();
   }
 }
 
@@ -83,13 +90,8 @@ export function stopSimulation() {
 
 export function startDragNode(nodeId: string) {
   if (!simulation) return;
-  simulation.alphaTarget(0.3).restart();
-  const node = simulation.nodes().find((n) => n.id === nodeId);
-  if (node) {
-    node.fx = node.x;
-    node.fy = node.y;
-  }
-  console.log("startDragNode", node?.fx, node?.fy);
+  simulation.alphaTarget(DRAG_ALPHA_TARGET).restart();
+  freezeNode(nodeId);
 }
 
 export function dragNode(nodeId: string, x: number, y: number) {
@@ -99,8 +101,6 @@ export function dragNode(nodeId: string, x: number, y: number) {
     node.fx = x;
     node.fy = y;
   }
-  // if (node?.id.startsWith("node"))
-  // console.log("dragNode", node?.fx, node?.fy);
 }
 
 export function endDragNode(nodeId: string, unfreeze = true) {
@@ -108,12 +108,7 @@ export function endDragNode(nodeId: string, unfreeze = true) {
   simulation.alphaTarget(0);
 
   if (unfreeze) {
-    const node = simulation.nodes().find((n) => n.id === nodeId);
-    console.log("endDragNode", node?.fx, node?.fy);
-    if (node) {
-      node.fx = null;
-      node.fy = null;
-    }
+    unfreezeNode(nodeId);
   }
 }
 

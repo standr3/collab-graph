@@ -1,6 +1,27 @@
 import * as PIXI from 'pixi.js';
 import { type Node as GraphNode } from './store';
-import pinIconUrl from '../assets/pin.svg';
+import {
+  LINK_ARROW_PADDING,
+  ARROW_SIZE,
+  ARROW_ANGLE,
+  LINK_STROKE,
+  LINK_CURVATURE_STANDARD_DISTANCE,
+  NODE_MIN_WIDTH,
+  NODE_MAX_WIDTH,
+  NODE_PADDING,
+  NODE_FONT_FAMILY,
+  NODE_FONT_SIZE,
+  NODE_TEXT_COLOR,
+  NODE_LINE_HEIGHT,
+  NODE_BORDER_RADIUS,
+  NODE_FILL_COLOR,
+  NODE_STROKE_PINNED,
+  NODE_STROKE_UNPINNED,
+  PIN_BUTTON_PADDING,
+  PIN_BUTTON_SIZE,
+  PIN_BUTTON_COLOR_PINNED,
+  PIN_BUTTON_COLOR_UNPINNED,
+} from './config';
 
 const getRectEdgePoint = (sourcePoint: PIXI.Point, targetNode: GraphNode): PIXI.Point => {
   const sx = sourcePoint.x;
@@ -67,12 +88,11 @@ export const drawLink = (
   const dx = ex - sx;
   const dy = ey - sy;
   const angle = Math.atan2(dy, dx);
-  const padding = 3;
 
-  sx += padding * Math.cos(angle);
-  sy += padding * Math.sin(angle);
-  ex -= padding * Math.cos(angle);
-  ey -= padding * Math.sin(angle);
+  sx += LINK_ARROW_PADDING * Math.cos(angle);
+  sy += LINK_ARROW_PADDING * Math.sin(angle);
+  ex -= LINK_ARROW_PADDING * Math.cos(angle);
+  ey -= LINK_ARROW_PADDING * Math.sin(angle);
 
   let curvature = baseCurvature;
   let controlPointBase = { x: (sx + ex) / 2, y: (sy + ey) / 2 };
@@ -96,8 +116,7 @@ export const drawLink = (
       // 1. Calculate combined curvature magnitude
       const sin_theta = Math.sqrt(1 - Math.max(0, Math.min(1, cos_theta * cos_theta)));
       
-      const standardDistance = 300;
-      const distanceFactor = Math.min(len_se / standardDistance, 1.0);
+      const distanceFactor = Math.min(len_se / LINK_CURVATURE_STANDARD_DISTANCE, 1.0);
       
       let magnitude = (Math.abs(baseCurvature) + 0.15) * sin_theta * distanceFactor;
 
@@ -129,20 +148,18 @@ export const drawLink = (
     linkGfx.quadraticCurveTo(ctrlX, ctrlY, ex, ey);
     arrowheadAngle = Math.atan2(ey - ctrlY, ex - ctrlX);
   }
-  linkGfx.stroke({ width: 1.5, color: 0xabb8c3, alpha: 0.9 });
+  linkGfx.stroke(LINK_STROKE);
 
-  const arrowSize = 8;
-  const arrowAngle = Math.PI / 7;
-  const p1x = ex - arrowSize * Math.cos(arrowheadAngle - arrowAngle);
-  const p1y = ey - arrowSize * Math.sin(arrowheadAngle - arrowAngle);
-  const p2x = ex - arrowSize * Math.cos(arrowheadAngle + arrowAngle);
-  const p2y = ey - arrowSize * Math.sin(arrowheadAngle + arrowAngle);
+  const p1x = ex - ARROW_SIZE * Math.cos(arrowheadAngle - ARROW_ANGLE);
+  const p1y = ey - ARROW_SIZE * Math.sin(arrowheadAngle - ARROW_ANGLE);
+  const p2x = ex - ARROW_SIZE * Math.cos(arrowheadAngle + ARROW_ANGLE);
+  const p2y = ey - ARROW_SIZE * Math.sin(arrowheadAngle + ARROW_ANGLE);
 
   linkGfx.moveTo(ex, ey);
   linkGfx.lineTo(p1x, p1y);
   linkGfx.moveTo(ex, ey);
   linkGfx.lineTo(p2x, p2y);
-  linkGfx.stroke({ width: 1.5, color: 0xabb8c3, alpha: 0.9 });
+  linkGfx.stroke(LINK_STROKE);
 };
 
 export const drawNode = (
@@ -151,44 +168,40 @@ export const drawNode = (
   pinSvgData: PIXI.GraphicsContext
 ): PIXI.Container => {
     const nodeContainer = new PIXI.Container();
-    nodeContainer.name = nodeData.id;
+    nodeContainer.label = nodeData.id;
 
-    const minWidth = 80, maxWidth = 180, padding = 16;
     const textStyle: PIXI.TextStyleOptions = { 
-        fontFamily: `'Inter', sans-serif`, 
-        fontSize: 14, 
-        fill: 0x1a202c, 
+        fontFamily: NODE_FONT_FAMILY, 
+        fontSize: NODE_FONT_SIZE, 
+        fill: NODE_TEXT_COLOR, 
         align: "center", 
         wordWrap: true, 
-        wordWrapWidth: maxWidth - padding * 2, 
-        lineHeight: 18 
+        wordWrapWidth: NODE_MAX_WIDTH - NODE_PADDING * 2, 
+        lineHeight: NODE_LINE_HEIGHT 
     };
 
     const tempText = new PIXI.Text({ text: nodeData.label, style: textStyle });
-    nodeData.width = Math.max(minWidth, tempText.width + padding * 2);
-    nodeData.height = Math.max(40, tempText.height + padding * 2);
+    nodeData.width = Math.max(NODE_MIN_WIDTH, tempText.width + NODE_PADDING * 2);
+    nodeData.height = Math.max(40, tempText.height + NODE_PADDING * 2);
     tempText.destroy();
 
     const box = new PIXI.Graphics();
     const text = new PIXI.Text({ text: nodeData.label, style: {...textStyle, wordWrapWidth: nodeData.width - 32}});
     text.resolution = 2;
 
-    const pinnedStyle = { width: 2, color: 0x1a202c, alpha: 0.8 };
-    const unpinnedStyle = { width: 1, color: 0x000000, alpha: 0.1 };
-
     const redrawBox = (isPinned: boolean) => {
         box.clear();
-        const style = isPinned ? pinnedStyle : unpinnedStyle;
-        box.roundRect(0, 0, nodeData.width, nodeData.height, 10)
-           .fill({ color: 0xffffff, alpha: 0.9 })
+        const style = isPinned ? NODE_STROKE_PINNED : NODE_STROKE_UNPINNED;
+        box.roundRect(0, 0, nodeData.width, nodeData.height, NODE_BORDER_RADIUS)
+           .fill(NODE_FILL_COLOR)
            .stroke(style);
     };
 
     redrawBox(!!nodeData.pinned);
 
-    if (text.height > 18 * 3) {
+    if (text.height > NODE_LINE_HEIGHT * 3) {
         let truncatedText = nodeData.label;
-        while(text.height > 18*3 && truncatedText.length > 0) {
+        while(text.height > NODE_LINE_HEIGHT*3 && truncatedText.length > 0) {
             truncatedText = truncatedText.slice(0, -5) + "...";
             text.text = truncatedText;
         }
@@ -203,19 +216,18 @@ export const drawNode = (
     // Pin button
     const pinButton = new PIXI.Graphics(pinSvgData);
     
-    const scale = 16 / Math.max(pinButton.width, pinButton.height);
+    const scale = PIN_BUTTON_SIZE / Math.max(pinButton.width, pinButton.height);
     pinButton.scale.set(scale);
     
     // Set the pivot to the center of the graphics bounds
     const bounds = pinButton.getBounds();
     pinButton.pivot.set(bounds.width / 2 / scale, bounds.height / 2 / scale);
 
-    const pinPadding = 5;
-    const pinX = nodeData.width / 2 - pinPadding;
-    const pinY = -nodeData.height / 2 + pinPadding;
+    const pinX = nodeData.width / 2 - PIN_BUTTON_PADDING;
+    const pinY = -nodeData.height / 2 + PIN_BUTTON_PADDING;
 
     const setPinButtonState = (isPinned: boolean) => {
-        pinButton.tint = isPinned ? 0x1a202c : 0xaaaaaa;
+        pinButton.tint = isPinned ? PIN_BUTTON_COLOR_PINNED : PIN_BUTTON_COLOR_UNPINNED;
     };
 
     setPinButtonState(!!nodeData.pinned);

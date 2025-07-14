@@ -171,7 +171,6 @@ export const useGraphStore = create<GraphState>((set) => ({
         // y: window.innerHeight / 2,
       };
 
-      console.log("Adding new node:", newNode);
       return { nodes: [...state.nodes, newNode] };
     });
   },
